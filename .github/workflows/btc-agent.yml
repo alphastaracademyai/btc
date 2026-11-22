@@ -1,0 +1,40 @@
+name: BTC Price Agent
+
+on:
+  schedule:
+    - cron: '7 0,2,4,6,8,10,12,14,16,18,20,22 * * *'  # Every 2 hours, UTC
+  workflow_dispatch:  # Run manually from the Actions tab
+
+concurrency:
+  group: btc-price-agent
+  cancel-in-progress: false
+
+jobs:
+  update-btc:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Check out repo
+        uses: actions/checkout@v7
+
+      - name: Set up Python
+        uses: actions/setup-python@v7
+        with:
+          python-version: '3.12'
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Run BTC script
+        run: python btc.py
+
+      - name: Commit updated data
+        run: |
+          git config user.name "BTC Price Agent"
+          git config user.email "actions@github.com"
+          git add btc_prices.csv btc_chart.png
+          git commit -m "Update BTC price $(date +'%Y-%m-%d')" || echo "No changes to commit"
+          git pull --rebase origin main
+          git push
